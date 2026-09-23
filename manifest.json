@@ -2,7 +2,7 @@
   "name": "全球传染病监测台",
   "short_name": "GID监测",
   "description": "疟疾·猴痘·全球流行疾病实时统计",
-  "start_url": "/gid-live/",
+  "start_url": "FDC.D.C",
   "display": "standalone",
   "background_color": "#0d1117",
   "theme_color": "#161b22",
