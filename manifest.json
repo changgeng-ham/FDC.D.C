@@ -1,0 +1,22 @@
+{
+  "name": "全球传染病监测台",
+  "short_name": "GID监测",
+  "description": "疟疾·猴痘·全球流行疾病实时统计",
+  "start_url": "/gid-live/",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#161b22",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%230d1117' width='192' height='192' rx='24'/%3E%3Ctext x='96' y='120' font-size='90' text-anchor='middle'%3E🌍%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect fill='%230d1117' width='512' height='512' rx='48'/%3E%3Ctext x='256' y='320' font-size='240' text-anchor='middle'%3E🌍%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
