@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全球传染病实时监测台 · 2026</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#30363d;--txt:#e6edf3;--mut:#8b949e;
+--red:#e5534b;--org:#f0883e;--grn:#3fb950;--yel:#d29922;--pur:#a371f7;--blu:#58a6ff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:"PingFang SC","Microsoft YaHei","Segoe UI",Arial,sans-serif;line-height:1.65}
+a{color:var(--blu);text-decoration:none}
+header{padding:28px 22px 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#11161d,#0d1117)}
+header h1{font-size:26px}
+header p{color:var(--mut);font-size:13px;margin-top:6px}
+.badge{display:inline-block;background:#21262d;border:1px solid var(--line);border-radius:20px;padding:2px 12px;font-size:12px;color:var(--mut);margin-right:6px}
+.badge.live{color:var(--grn);border-color:#1f6f2f}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--grn);margin-right:5px;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.wrap{max-width:1180px;margin:0 auto;padding:22px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:20px 0}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.kpi .t{font-size:13px;color:var(--mut)}
+.kpi .v{font-size:30px;font-weight:700;margin:4px 0}
+.kpi .d{font-size:12px;color:var(--mut)}
+.c-red{color:var(--red)}.c-org{color:var(--org)}.c-grn{color:var(--grn)}.c-pur{color:var(--pur)}.c-yel{color:var(--yel)}.c-blu{color:var(--blu)}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:18px 0}
+section h2{font-size:18px;margin-bottom:4px}
+section .sub{font-size:12px;color:var(--mut);margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.chart{width:100%;height:auto}
+.lbl{font-size:12px;fill:var(--txt)}.lbl.sm{font-size:10px}.val{font-size:11px;fill:var(--mut)}.note{font-size:9px;fill:#6e7681}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--mut);font-weight:600;font-size:12px}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:hover td{background:var(--panel2)}
+.pill{display:inline-block;border-radius:4px;padding:1px 8px;font-size:11px;font-weight:600}
+.p-red{background:#3d1d1d;color:var(--red)}.p-org{background:#3a2a14;color:var(--org)}.p-yel{background:#38300f;color:var(--yel)}.p-grn{background:#123a1e;color:var(--grn)}
+.src{font-size:12px;color:var(--mut);margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.warn{background:#2a1f10;border:1px solid #6e5a1e;border-radius:10px;padding:12px 16px;font-size:13px;color:#e3b341;margin:14px 0}
+footer{padding:26px 22px 40px;color:var(--mut);font-size:12px;border-top:1px solid var(--line);max-width:1180px;margin:0 auto}
+code{background:#21262d;border-radius:4px;padding:1px 6px;font-size:12px}
+pre{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;font-size:12px;margin-top:10px}
+</style>
+  <meta name="theme-color" content="#161b22">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GID监测">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    @media (max-width: 640px) {
+      header h1 { font-size: 20px !important; }
+      .kpis { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+      .kpi { padding: 12px 10px !important; }
+      .kpi .v { font-size: 22px !important; }
+      section { padding: 14px 12px !important; margin: 12px 0 !important; }
+      .grid2 { grid-template-columns: 1fr !important; }
+      table { font-size: 11px !important; }
+      th, td { padding: 5px 6px !important; }
+      pre { font-size: 10px !important; padding: 10px !important; }
+      .wrap { padding: 12px !important; }
+    }
+    @media (max-width: 900px) and (orientation: landscape) {
+      .kpis { grid-template-columns: repeat(4, 1fr) !important; }
+    }
+    #install-bar {
+      display:none;position:fixed;bottom:0;left:0;right:0;background:#161b22;
+      border-top:1px solid #30363d;padding:12px 16px;z-index:999;
+      align-items:center;justify-content:space-between;gap:10px;
+    }
+    #install-bar.show { display:flex; }
+    #install-bar span { font-size:13px;color:#e6edf3; }
+    #install-bar button {
+      background:#238636;color:#fff;border:none;border-radius:6px;
+      padding:6px 14px;font-size:13px;cursor:pointer;white-space:nowrap;
+    }
+    #install-bar button.dismiss {
+      background:transparent;color:#8b949e;padding:6px 8px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🌍 全球传染病实时监测台</h1>
+  <p>疟疾 · 猴痘 · 全球流行重点疾病 TOP10 ｜ 数据更新：<b id="asof">2026-09-22</b></p>
+  <p style="margin-top:10px">
+    <span class="badge live"><span class="dot"></span>连接中…</span>
+    <span class="badge">KPI 由 data.json 驱动 · 30分钟自刷新</span>
+    <span class="badge">权威源：WHO / ECDC / PAHO / 中国CDC</span>
+  </p>
+</header>
+
+<div class="wrap">
+
+  <div class="kpis">
+    <div class="kpi" id="kpi-0"><div class="t"></div><div class="v c-red"></div><div class="d"></div></div>
+    <div class="kpi" id="kpi-1"><div class="t"></div><div class="v c-pur"></div><div class="d"></div></div>
+    <div class="kpi" id="kpi-2"><div class="t"></div><div class="v c-org"></div><div class="d"></div></div>
+    <div class="kpi" id="kpi-3"><div class="t"></div><div class="v c-grn"></div><div class="d"></div></div>
+  </div>
+
+  <section>
+    <h2>📊 全球传染病负担 TOP 10</h2>
+    <p class="sub">按年死亡人数估计排序 · 口径与年份见每行注释 · 疟疾已更新为 WHO 2025 报告（2024年数据）</p>
+    <svg viewBox="0 0 820 310" class="chart" role="img"><text x="0" y="20" class="lbl">下呼吸道感染</text><rect x="150" y="8" width="400.0" height="18" rx="3" fill="#e5534b" opacity="0.95"/><text x="556.0" y="20" class="val">2,500,000</text><text x="0" y="50" class="lbl">腹泻病</text><rect x="150" y="38" width="240.0" height="18" rx="3" fill="#e5534b" opacity="0.8999999999999999"/><text x="396.0" y="50" class="val">1,500,000</text><text x="0" y="80" class="lbl">病毒性肝炎</text><rect x="150" y="68" width="208.0" height="18" rx="3" fill="#e5534b" opacity="0.85"/><text x="364.0" y="80" class="val">1,300,000</text><text x="0" y="110" class="lbl">结核病</text><rect x="150" y="98" width="200.0" height="18" rx="3" fill="#e5534b" opacity="0.7999999999999999"/><text x="356.0" y="110" class="val">1,250,000</text><text x="0" y="140" class="lbl">HIV/AIDS</text><rect x="150" y="128" width="100.8" height="18" rx="3" fill="#e5534b" opacity="0.75"/><text x="256.8" y="140" class="val">630,000</text><text x="0" y="170" class="lbl">疟疾</text><rect x="150" y="158" width="97.6" height="18" rx="3" fill="#e5534b" opacity="0.7"/><text x="253.6" y="170" class="val">610,000</text><text x="0" y="200" class="lbl">季节性流感</text><rect x="150" y="188" width="75.2" height="18" rx="3" fill="#e5534b" opacity="0.6499999999999999"/><text x="231.2" y="200" class="val">470,000</text><text x="0" y="230" class="lbl">脑膜炎</text><rect x="150" y="218" width="40.0" height="18" rx="3" fill="#e5534b" opacity="0.5999999999999999"/><text x="196.0" y="230" class="val">250,000</text><text x="0" y="260" class="lbl">百日咳</text><rect x="150" y="248" width="16.0" height="18" rx="3" fill="#e5534b" opacity="0.5499999999999999"/><text x="172.0" y="260" class="val">100,000</text><text x="0" y="290" class="lbl">麻疹</text><rect x="150" y="278" width="17.2" height="18" rx="3" fill="#e5534b" opacity="0.49999999999999994"/><text x="173.2" y="290" class="val">107,500</text></svg>
+    <div class="src">来源：WHO《World Malaria Report 2025》《Global TB Report》、UNAIDS、GBD、CDC。注：各来源统计口径/年份不同，数字仅供量级参考。</div>
+  </section>
+
+  <div class="grid2">
+    <section>
+      <h2>🦟 疟疾 · 深度追踪</h2>
+      <p class="sub">WHO《2025世界疟疾报告》（2024年数据，2025-12-04发布）</p>
+      <table>
+        <tr><th>指标</th><th class="num">数值</th></tr>
+        <tr><td>全球病例（2024）</td><td class="num"><b class="c-red">2.82亿</b>（2023：2.73亿）</td></tr>
+        <tr><td>全球死亡（2024）</td><td class="num"><b class="c-red">61万</b>（2023：59.8万）</td></tr>
+        <tr><td>WHO非洲区域占比</td><td class="num">94% 病例 / 95% 死亡</td></tr>
+        <tr><td>5岁以下儿童占死亡</td><td class="num">约 75%</td></tr>
+        <tr><td>病例最多国家</td><td class="num">尼日利亚 25.8% · 刚果(金) 13.3%</td></tr>
+        <tr><td>抗疟药耐药</td><td class="num"><span class="pill p-red">≥8个非洲国家确诊/疑似</span></td></tr>
+        <tr><td>2024年避免死亡</td><td class="num"><b class="c-grn">100万</b>（2.3亿例避免）</td></tr>
+      </table>
+      <div class="src">来源：WHO World Malaria Report 2025（2024-12-04发布）；Severe Malaria Observatory</div>
+    </section>
+
+    <section>
+      <h2>🐒 猴痘（Mpox）· 多国疫情追踪</h2>
+      <p class="sub">WHO 多国疫情外部情况报告 · 数据截至2026-07-31（非洲截至08-16）</p>
+      <svg viewBox="0 0 560 300" class="chart" role="img"><line x1="0" y1="240" x2="560" y2="240" stroke="#444c56" stroke-width="1"/><rect x="33.6" y="59.7" width="119.5" height="180.3" rx="3" fill="#a371f7"/><text x="93.3" y="53.7" text-anchor="middle" class="val">1,235</text><text x="93.3" y="256" text-anchor="middle" class="lbl sm">2026-03</text><text x="93.3" y="272" text-anchor="middle" class="note">48国·5死</text><rect x="220.3" y="73.3" width="119.5" height="166.7" rx="3" fill="#a371f7"/><text x="280.0" y="67.3" text-anchor="middle" class="val">1,142</text><text x="280.0" y="256" text-anchor="middle" class="lbl sm">2026-05</text><text x="280.0" y="272" text-anchor="middle" class="note">32国·3死</text><rect x="406.9" y="40.0" width="119.5" height="200.0" rx="3" fill="#a371f7"/><text x="466.7" y="34.0" text-anchor="middle" class="val">1,370</text><text x="466.7" y="256" text-anchor="middle" class="lbl sm">2026-07</text><text x="466.7" y="272" text-anchor="middle" class="note">32国·7死</text></svg>
+      <table>
+        <tr><th>指标</th><th class="num">数值</th></tr>
+        <tr><td>2022年以来累计确诊</td><td class="num"><b class="c-pur">179,612</b> 例 / 145国（至2026-01-31）</td></tr>
+        <tr><td>累计死亡（美洲）</td><td class="num">160 例（PAHO）</td></tr>
+        <tr><td>非洲近6周活跃传播</td><td class="num">16国 · 969例 · 3死</td></tr>
+        <tr><td>7月病死率 CFR</td><td class="num">0.5%（3月0.4%）</td></tr>
+        <tr><td>病毒进化支</td><td class="num">全部进化支持续流行 · <span class="pill p-org">Ib支在非洲外社区传播</span></td></tr>
+        <tr><td>疫情状态</td><td class="num"><span class="pill p-yel">WHO 分级紧急事件</span></td></tr>
+      </table>
+      <div class="src">来源：WHO 外部情况报告 #65 / #69（2026-04-30 / 09-14）；PAHO 美洲区报告（2026-02）</div>
+    </section>
+  </div>
+
+  <section>
+    <h2>🦟 登革热 · 2026 流行季</h2>
+    <p class="sub">2026年初至7月31日全球已报告 150万+ 例、500+ 死亡（低于2025年同期）· 重点国家：</p>
+    <svg viewBox="0 0 820 250" class="chart" role="img"><text x="0" y="20" class="lbl">斯里兰卡</text><rect x="150" y="8" width="400.0" height="18" rx="3" fill="#f0883e" opacity="0.95"/><text x="556.0" y="20" class="val">82,007</text><text x="0" y="50" class="lbl">印尼*</text><rect x="150" y="38" width="284.6" height="18" rx="3" fill="#f0883e" opacity="0.8999999999999999"/><text x="440.6" y="50" class="val">58,357</text><text x="0" y="80" class="lbl">越南*</text><rect x="150" y="68" width="203.3" height="18" rx="3" fill="#f0883e" opacity="0.85"/><text x="359.3" y="80" class="val">41,684</text><text x="0" y="110" class="lbl">柬埔寨</text><rect x="150" y="98" width="136.9" height="18" rx="3" fill="#f0883e" opacity="0.7999999999999999"/><text x="292.9" y="110" class="val">28,074</text><text x="0" y="140" class="lbl">印度*</text><rect x="150" y="128" width="111.9" height="18" rx="3" fill="#f0883e" opacity="0.75"/><text x="267.9" y="140" class="val">22,938</text><text x="0" y="170" class="lbl">孟加拉</text><rect x="150" y="158" width="74.7" height="18" rx="3" fill="#f0883e" opacity="0.7"/><text x="230.7" y="170" class="val">15,310</text><text x="0" y="200" class="lbl">新加坡</text><rect x="150" y="188" width="8.1" height="18" rx="3" fill="#f0883e" opacity="0.6499999999999999"/><text x="164.1" y="200" class="val">1,656</text><text x="0" y="230" class="lbl">中国</text><rect x="150" y="218" width="2.3" height="18" rx="3" fill="#f0883e" opacity="0.5999999999999999"/><text x="158.3" y="230" class="val">477</text></svg>
+    <div class="src">来源：ECDC《Dengue worldwide overview》（2026-08更新）；WHO SEARO/WPRO 流行病学通报。注：* 为部分年度累计；各国监测口径不同不可直接比较。</div>
+  </section>
+
+  <section>
+    <h2>🇨🇳 中国法定传染病报告（2026年5月）</h2>
+    <p class="sub">报告病例数 TOP 12 · 当月全国共报告 1,092,528 例、1,879 死亡（中国CDC周报，S级来源）</p>
+    <svg viewBox="0 0 820 370" class="chart" role="img"><text x="0" y="20" class="lbl">流行性感冒</text><rect x="150" y="8" width="400.0" height="18" rx="3" fill="#3fb950" opacity="0.95"/><text x="556.0" y="20" class="val">514,726</text><text x="0" y="50" class="lbl">感染性腹泻</text><rect x="150" y="38" width="121.2" height="18" rx="3" fill="#3fb950" opacity="0.8999999999999999"/><text x="277.2" y="50" class="val">155,958</text><text x="0" y="80" class="lbl">手足口病</text><rect x="150" y="68" width="88.9" height="18" rx="3" fill="#3fb950" opacity="0.85"/><text x="244.9" y="80" class="val">114,376</text><text x="0" y="110" class="lbl">乙肝</text><rect x="150" y="98" width="86.7" height="18" rx="3" fill="#3fb950" opacity="0.7999999999999999"/><text x="242.7" y="110" class="val">111,588</text><text x="0" y="140" class="lbl">肺结核</text><rect x="150" y="128" width="44.5" height="18" rx="3" fill="#3fb950" opacity="0.75"/><text x="200.5" y="140" class="val">57,225</text><text x="0" y="170" class="lbl">梅毒</text><rect x="150" y="158" width="44.3" height="18" rx="3" fill="#3fb950" opacity="0.7"/><text x="200.3" y="170" class="val">57,027</text><text x="0" y="200" class="lbl">新冠</text><rect x="150" y="188" width="17.0" height="18" rx="3" fill="#3fb950" opacity="0.6499999999999999"/><text x="173.0" y="200" class="val">21,861</text><text x="0" y="230" class="lbl">丙肝</text><rect x="150" y="218" width="11.7" height="18" rx="3" fill="#3fb950" opacity="0.5999999999999999"/><text x="167.7" y="230" class="val">15,036</text><text x="0" y="260" class="lbl">流行性腮腺炎</text><rect x="150" y="248" width="6.0" height="18" rx="3" fill="#3fb950" opacity="0.5499999999999999"/><text x="162.0" y="260" class="val">7,748</text><text x="0" y="290" class="lbl">布鲁氏菌病</text><rect x="150" y="278" width="5.2" height="18" rx="3" fill="#3fb950" opacity="0.49999999999999994"/><text x="161.2" y="290" class="val">6,748</text><text x="0" y="320" class="lbl">猩红热</text><rect x="150" y="308" width="2.0" height="18" rx="3" fill="#3fb950" opacity="0.44999999999999996"/><text x="158.0" y="320" class="val">2,057</text><text x="0" y="350" class="lbl">百日咳</text><rect x="150" y="338" width="2.0" height="18" rx="3" fill="#3fb950" opacity="0.3999999999999999"/><text x="158.0" y="350" class="val">769</text></svg>
+    <table>
+      <tr><th>病名</th><th class="num">病例</th><th class="num">死亡</th><th>病名</th><th class="num">病例</th><th class="num">死亡</th></tr>
+      <tr><td>艾滋病</td><td class="num">3,833</td><td class="num c-red">1,454</td><td>发热伴血小板减少综合征</td><td class="num">900</td><td class="num c-red">33</td></tr>
+      <tr><td>狂犬病</td><td class="num">20</td><td class="num c-red">19</td><td>丙型肝炎</td><td class="num">15,036</td><td class="num">157</td></tr>
+      <tr><td>肺结核</td><td class="num">57,225</td><td class="num">167</td><td>乙型肝炎</td><td class="num">111,588</td><td class="num">35</td></tr>
+      <tr><td>新冠肺炎</td><td class="num">21,861</td><td class="num">1</td><td>流行性感冒</td><td class="num">514,726</td><td class="num">2</td></tr>
+      <tr><td>疟疾</td><td class="num">406</td><td class="num">0</td><td>猴痘</td><td class="num">86</td><td class="num">0</td></tr>
+      <tr><td>登革热</td><td class="num">222</td><td class="num">0</td><td>百日咳</td><td class="num">769</td><td class="num">0</td></tr>
+    </table>
+    <div class="src">来源：《Reported Cases and Deaths of National Notifiable Infectious Diseases — China, May 2026》，China CDC Weekly（DOI 10.46234/ccdcw2026.155）</div>
+  </section>
+
+  <section>
+    <h2>⚠️ 其他活跃疫情速览</h2>
+    <p class="sub">2026年值得持续关注的公共卫生事件</p>
+    <table>
+      <tr><th>事件</th><th>现状</th><th>级别</th></tr>
+      <tr><td><b>埃博拉</b>（刚果(金) Bundibugyo 株）</td><td>2026-05-05报告WHO，已致 <b class="c-red">139死</b>，蔓延至乌干达；无获批疫苗</td><td><span class="pill p-red">PHEIC（5/17宣布）</span></td></tr>
+      <tr><td><b>猴痘</b> 多国疫情</td><td>所有进化支持续流行，非洲区域约占病例2/3，马达加斯加为当前热点</td><td><span class="pill p-yel">WHO 分级紧急</span></td></tr>
+      <tr><td><b>登革热</b></td><td>2026年全球150万+例，斯里兰卡、东南亚多国超去年同期</td><td><span class="pill p-org">季节性高发</span></td></tr>
+      <tr><td><b>流感</b></td><td>中国5月报告51.5万例为全球月度最高量级之一；南北半球季节性交替</td><td><span class="pill p-org">季节性流行</span></td></tr>
+      <tr><td><b>新冠</b> COVID-19</td><td>进入地方性流行阶段，全球周报告维持在低水平波动</td><td><span class="pill p-grn">常规监测</span></td></tr>
+      <tr><td><b>发热伴血小板减少综合征</b>（SFTS）</td><td>中国5月900例、33死，夏秋季蜱传高发期需警惕</td><td><span class="pill p-yel">国内关注</span></td></tr>
+      <tr><td><b>安第斯病毒</b>（汉坦病毒）</td><td>邮轮聚集性疫情：10例、3死、440+密接（23国），可人传人（Lancet ID，2026-05）</td><td><span class="pill p-yel">国际关注</span></td></tr>
+    </table>
+    <div class="src">来源：WHO 疾病暴发新闻、Nature Communications 社论（2026-05-22）、Lancet Infectious Diseases、ECDC、中国CDC</div>
+  </section>
+
+  <section>
+    <h2>🔧 如何把本页变成真正的"实时"网站</h2>
+    <p class="sub">纯前端无法直接跨域抓取 WHO 数据（CORS 限制），推荐以下任一方案：</p>
+    <div class="warn">本页面 KPI 当前为演示快照：生产环境由 GitHub Actions 每 6 小时调用 fetch_data.py 生成 data.json，前端自动读取。</div>
+    <table>
+      <tr><th>方案</th><th>做法</th><th>成本</th></tr>
+      <tr><td><b>① GitHub Actions 定时抓取（推荐）</b></td><td>每 6 小时运行 Python 脚本，调用 WHO GHO OData API / OWID Grapher CSV（已开放 CORS）/ 中国 CDC 周报，生成 data.json 提交回仓库，前端读取</td><td>免费</td></tr>
+      <tr><td><b>② 轻量后端代理</b></td><td>Node/Python 后端定时拉取 WHO、ECDC、HealthMap，暴露 <code>/api/live</code> 给前端</td><td>低</td></tr>
+      <tr><td><b>③ 托管 + 手动更新</b></td><td>直接部署本 HTML 到 GitHub Pages / Vercel，每月根据 WHO 报告手动更新数据</td><td>免费</td></tr>
+    </table>
+    <pre>// 前端接入示例（fetch 你的 data.json）
+async function fetchLive(){
+  const r = await fetch('data.json?ts='+Date.now());
+  const d = await r.json();
+  render(d); // 用真实数据替换演示数值
+}
+setInterval(fetchLive, 30*60*1000); // 每30分钟</pre>
+  </section>
+</div>
+
+<footer>
+  <p><b>免责声明</b>：本页面为公共卫生数据可视化演示，仅用于信息展示，不构成医疗建议。所有数据以 WHO、各国卫生部门及中国疾病预防控制中心官方发布为准。各来源统计口径、报告延迟与修订机制不同，跨来源比较请谨慎。</p>
+  <p style="margin-top:8px">数据来源：WHO（World Malaria Report 2025、Mpox 外部情况报告 #65/#69、疾病暴发新闻）、ECDC、PAHO、UNAIDS、China CDC Weekly（2026年5月）、GBD、Lancet Infectious Diseases、Nature Communications。</p>
+</footer>
+
+<script>
+const DEMO_KPI = [
+  {title:"疟疾（2024年全球）", value:"2.82亿", note:"病例 · 死亡 61万（WHO 2025报告，快照）"},
+  {title:"猴痘（2026年7月单月）", value:"1,370", note:"确诊 · 7死 · 32国（WHO #69，快照）"},
+  {title:"登革热（2026年累计）", value:"150万+", note:"全球报告 · 500+死（ECDC，快照）"},
+  {title:"流感（中国 2026年5月）", value:"514,726", note:"法定传染病报告（中国CDC，快照）"}
+];
+
+function render(kpi, asof, live){
+  kpi.slice(0,4).forEach((k,i)=>{
+    const el = document.getElementById('kpi-'+i);
+    if(!el) return;
+    el.children[0].textContent = k.title;
+    el.children[1].textContent = k.value;
+    el.children[2].textContent = k.note;
+  });
+  if(asof) document.getElementById('asof').textContent = asof;
+  document.querySelector('.badge.live').innerHTML =
+    '<span class="dot"></span>' + (live ? '实时数据' : '离线快照') + ' · <span id="clock">' +
+    new Date().toLocaleTimeString('zh-CN',{hour12:false}) + '</span>';
+}
+
+async function fetchLive(){
+  try{
+    const r = await fetch('data.json?ts=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    if(d.kpi && d.kpi.length){ render(d.kpi, d.asof, true); return; }
+    throw new Error('empty');
+  }catch(e){
+    render(DEMO_KPI, '2026-09-22（快照）', false);
+  }
+}
+
+const demoMode = new URLSearchParams(location.search).has('demo');
+render(DEMO_KPI, demoMode ? null : undefined, false);
+if(!demoMode) fetchLive();
+setInterval(fetchLive, 30*60*1000);
+
+function tick(){
+  const c = document.getElementById('clock');
+  if(c) c.textContent = new Date().toLocaleTimeString('zh-CN',{hour12:false});
+}
+setInterval(tick, 1000);
+</script>
+
+<div id="install-bar">
+  <span>📱 添加到主屏幕，像App一样使用</span>
+  <div style="display:flex;gap:6px">
+    <button id="btn-install">立即添加</button>
+    <button class="dismiss" id="btn-dismiss">✕</button>
+  </div>
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    console.log('SW registered', reg.scope);
+  }).catch(err => console.log('SW failed', err));
+}
+
+let deferredPrompt;
+const bar = document.getElementById('install-bar');
+const btnInstall = document.getElementById('btn-install');
+const btnDismiss = document.getElementById('btn-dismiss');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  bar.classList.add('show');
+});
+
+btnInstall.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') bar.classList.remove('show');
+  deferredPrompt = null;
+});
+
+btnDismiss.addEventListener('click', () => bar.classList.remove('show'));
+
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+if (isIOS && !isStandalone) {
+  bar.querySelector('span').innerHTML = '📱 iPhone：点击分享按钮 → "添加到主屏幕"';
+  bar.classList.add('show');
+  btnInstall.style.display = 'none';
+}
+</script>
+</body>
+</html>
