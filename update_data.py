@@ -1,123 +1,81 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-fetch_data.py — 定时抓取权威数据源，生成 data.json
-设计原则:为人群服务，为强国奋斗。
+每月更新 data.json：
+1. 从国家卫健委网站获取最新一期《全国法定传染病疫情概况》
+2. 解析总发病数、总死亡数
+3. 写入对应年份的 months 数组，并累计年度 infections / deaths
 """
-import json, datetime, sys, traceback
-import requests, pandas as pd
+import json, re, sys, urllib.request
+from datetime import date
+from pathlib import Path
 
-UA = {"User-Agent": "gid-live-bot/1.0 (public health dashboard)"}
-OUT = "data.json"
+DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "data.json"
 
-def get(url, timeout=20):
-    r = requests.get(url, headers=UA, timeout=timeout)
-    r.raise_for_status()
-    return r
+# 国家卫健委疫情通报栏目（列表页）。若栏目调整，修改此处即可。
+LIST_URL = "https://www.nhc.gov.cn/wjw/yqb/list_gzbd.shtml"
 
-def try_urls(urls):
-    """依次尝试多个候选URL，返回第一个成功的DataFrame"""
-    errs = []
-    for u in urls:
-        try:
-            return pd.read_csv(u), u
-        except Exception as e:
-            errs.append(f"{u} -> {e}")
-    raise RuntimeError(" | ".join(errs))
+def fetch(url: str) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read().decode("utf-8", errors="ignore")
 
-def world_row(df):
-    for col in ("Entity", "Country", "location", "Location"):
-        if col in df.columns:
-            m = df[df[col].astype(str).str.contains("World|世界", case=False, na=False)]
-            if len(m):
-                return m.iloc[-1]
-    return df.iloc[-1]
+def parse_report(html: str):
+    """从通报正文提取 发病数 / 死亡数。通报典型表述：
+    '报告发病XXXXXX例，死亡XXXX人'"""
+    m = re.search(r"报告发病\s*([\d,，]+)\s*例", html)
+    d = re.search(r"死亡\s*([\d,，]+)\s*人", html)
+    if not m:
+        return None, None
+    num = lambda s: int(s.replace(",", "").replace("，", ""))
+    return num(m.group(1)), num(d.group(1)) if d else 0
 
-def num(x):
+def main():
+    today = date.today()
+    # 卫健委一般在次月中旬公布上月数据
+    year, month = (today.year, today.month - 1) or (today.year - 1, 12)
+    ym = f"{year}-{month:02d}"
+
     try:
-        return float(x)
-    except Exception:
-        return None
+        list_html = fetch(LIST_URL)
+        # 在列表页找到最新一期疫情概况的详情链接
+        link = re.search(r'href="([^"]+)"[^>]*>[^<]*法定传染病疫情概况', list_html)
+        if not link:
+            print("未找到最新通报链接，跳过本次更新（网页结构可能已变化）")
+            return
+        url = link.group(1)
+        if url.startswith("/"):
+            url = "https://www.nhc.gov.cn" + url
+        html = fetch(url)
+        infections, deaths = parse_report(html)
+    except Exception as e:
+        print(f"抓取失败: {e}（不阻塞，下次重试）")
+        sys.exit(0)
 
-kpi, sources, errors = [], {}, []
+    if infections is None:
+        print("未能从通报中解析出发病数，跳过")
+        return
 
-# ---------- 猴痘 mpox（OWID，已开放CORS，每日更新） ----------
-try:
-    df, src = try_urls([
-        "https://ourworldindata.org/grapher/monkeypox.csv?useColumnShortNames=true",
-        "https://ourworldindata.org/grapher/monkeypox-confirmed-cases.csv?useColumnShortNames=true",
-    ])
-    row = world_row(df)
-    cases_col = next((c for c in df.columns if "case" in c.lower()), None)
-    dead_col  = next((c for c in df.columns if "death" in c.lower() or "fatal" in c.lower()), None)
-    cases = num(row.get(cases_col)) if cases_col else None
-    dead  = num(row.get(dead_col)) if dead_col else None
-    kpi.append({"title": "猴痘（全球累计）",
-                "value": f"{int(cases):,}" if cases else "—",
-                "note": f"确诊累计 · 死亡 {int(dead):,}（OWID/各国上报，每日更新）" if dead else "OWID 每日更新"})
-    sources["mpox"] = {"ok": True, "src": src, "cases": cases, "deaths": dead}
-except Exception as e:
-    errors.append("mpox: " + str(e)[:200])
+    data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    rec = next((y for y in data["years"] if y["year"] == year), None)
+    if rec is None:
+        rec = {"year": year, "infections": 0, "deaths": 0,
+               "diseases": ["法定传染病（甲乙丙类合计）"], "hotspots": [],
+               "months": [], "source": "国家卫健委月度通报", "example": False}
+        data["years"].append(rec)
+        data["years"].sort(key=lambda x: x["year"])
 
-# ---------- 新冠 COVID-19（OWID，每日更新） ----------
-try:
-    df, src = try_urls([
-        "https://ourworldindata.org/grapher/covid-cases-deaths.csv?useColumnShortNames=true",
-    ])
-    row = world_row(df)
-    ccol = next((c for c in df.columns if "case" in c.lower()), None)
-    dcol = next((c for c in df.columns if "death" in c.lower()), None)
-    kpi.append({"title": "新冠（全球累计）",
-                "value": f"{int(num(row.get(ccol))):,}" if ccol and num(row.get(ccol)) else "—",
-                "note": f"累计确诊 · 死亡 {int(num(row.get(dcol))):,}" if dcol and num(row.get(dcol)) else "OWID 每日更新"})
-    sources["covid"] = {"ok": True, "src": src}
-except Exception as e:
-    errors.append("covid: " + str(e)[:200])
+    # 幂等：同月不重复写入
+    if not any(m["month"] == ym for m in rec["months"]):
+        rec["months"].append({"month": ym, "infections": infections, "deaths": deaths})
+        rec["months"].sort(key=lambda m: m["month"])
+        rec["infections"] = sum(m["infections"] for m in rec["months"])
+        rec["deaths"] = sum(m["deaths"] for m in rec["months"])
+        data["updatedAt"] = today.isoformat()
+        DATA_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"已写入 {ym}: 发病 {infections}, 死亡 {deaths}")
+    else:
+        print(f"{ym} 数据已存在，跳过")
 
-# ---------- 疟疾（WHO GHO OData，每年更新；失败时保留旧值） ----------
-try:
-    url = "https://ghoapi.azureedge.net/api/MALARIA_EST_DEATHS?$top=1&$format=json"
-    j = get(url).json()
-    val = j["value"][0].get("NumericValue") if j.get("value") else None
-    if val:
-        kpi.append({"title": "疟疾（全球年死亡，WHO）",
-                    "value": f"{int(float(val)):,}",
-                    "note": "WHO GHO 年度估计 · 病例约2.82亿（2025报告）"})
-        sources["malaria"] = {"ok": True, "src": url, "deaths": float(val)}
-except Exception as e:
-    errors.append("malaria: " + str(e)[:200])
-
-# ---------- 中国CDC（周报网页表格） ----------
-CDC_URL = "http://weekly.chinacdc.cn/en/article/doi/10.46234/ccdcw2026.155"  # 按最新一期替换
-try:
-    tables = pd.read_html(CDC_URL)
-    hit = None
-    for t in tables:
-        s = t.to_string()
-        if "Influenza" in s or "流感" in s:
-            hit = t
-            break
-    if hit is not None:
-        sources["china_cdc"] = {"ok": True, "src": CDC_URL, "note": "表格已抓取"}
-        kpi.append({"title": "中国法定传染病（最新月报）",
-                    "value": "已同步",
-                    "note": f"来源：China CDC Weekly，抓取于 {datetime.datetime.now():%Y-%m-%d}"})
-except Exception as e:
-    errors.append("china_cdc: " + str(e)[:200])
-
-# ---------- 合并写入 ----------
-old = {}
-try:
-    old = json.load(open(OUT, encoding="utf-8"))
-except Exception:
-    pass
-data = {
-    "asof": datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat(timespec="seconds"),
-    "kpi": kpi if kpi else old.get("kpi", []),
-    "sources": {**old.get("sources", {}), **sources},
-    "errors": errors,
-}
-json.dump(data, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-print(f"[OK] data.json 写入 {len(data['kpi'])} 项 KPI; 失败源 {len(errors)} 个")
-for e in errors:
-    print("  [WARN]", e)
-sys.exit(0)
+if __name__ == "__main__":
+    main()
