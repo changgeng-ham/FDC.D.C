@@ -181,25 +181,7 @@ pre{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:1
     <div class="src">来源：WHO 疾病暴发新闻、Nature Communications 社论（2026-05-22）、Lancet Infectious Diseases、ECDC、中国CDC</div>
   </section>
 
-  <section>
-    <h2>🔧 如何把本页变成真正的"实时"网站</h2>
-    <p class="sub">纯前端无法直接跨域抓取 WHO 数据（CORS 限制），推荐以下任一方案：</p>
-    <div class="warn">本页面 KPI 当前为演示快照：生产环境由 GitHub Actions 每 6 小时调用 fetch_data.py 生成 data.json，前端自动读取。</div>
-    <table>
-      <tr><th>方案</th><th>做法</th><th>成本</th></tr>
-      <tr><td><b>① GitHub Actions 定时抓取（推荐）</b></td><td>每 6 小时运行 Python 脚本，调用 WHO GHO OData API / OWID Grapher CSV（已开放 CORS）/ 中国 CDC 周报，生成 data.json 提交回仓库，前端读取</td><td>免费</td></tr>
-      <tr><td><b>② 轻量后端代理</b></td><td>Node/Python 后端定时拉取 WHO、ECDC、HealthMap，暴露 <code>/api/live</code> 给前端</td><td>低</td></tr>
-      <tr><td><b>③ 托管 + 手动更新</b></td><td>直接部署本 HTML 到 GitHub Pages / Vercel，每月根据 WHO 报告手动更新数据</td><td>免费</td></tr>
-    </table>
-    <pre>// 前端接入示例（fetch 你的 data.json）
-async function fetchLive(){
-  const r = await fetch('data.json?ts='+Date.now());
-  const d = await r.json();
-  render(d); // 用真实数据替换演示数值
-}
-setInterval(fetchLive, 30*60*1000); // 每30分钟</pre>
-  </section>
-</div>
+ 
 
 <footer>
   <p><b>免责声明</b>：本页面为公共卫生数据可视化演示，仅用于信息展示，不构成医疗建议。所有数据以 WHO、各国卫生部门及中国疾病预防控制中心官方发布为准。各来源统计口径、报告延迟与修订机制不同，跨来源比较请谨慎。</p>
